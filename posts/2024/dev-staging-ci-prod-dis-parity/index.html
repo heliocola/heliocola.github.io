@@ -14,15 +14,6 @@
   <link rel="stylesheet" href="/css/backgrounds.css">
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-F5XQ46J2G2"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-F5XQ46J2G2');
-  </script>
   <script src="/js/scale.fix.js"></script>
 
   <style>
@@ -94,14 +85,14 @@
               <pre>You're using a cache store that doesn't support native cache versioning.
 Your best option is to upgrade to a newer version of ActiveSupport::Cache::RedisStore
 that supports cache versioning (ActiveSupport::Cache::RedisStore.supports_cache_versioning? #=> true).
-  
+
 Next best, switch to a different cache store that does support cache versioning:
 https://guides.rubyonrails.org/caching_with_rails.html#cache-stores.
-  
+
 To keep using the current cache store, you can turn off cache versioning entirely:
-  
+
     config.active_record.cache_versioning = false</pre></div></p>
-        
+
           <p><span class="spkeym-purple">Side note:</span> I feel like this should be documented in the official Rails upgrade guide, but I know that sometimes what you see in <a href="https://guides.rubyonrails.org/upgrading_ruby_on_rails.html" target="_blank">https://guides.rubyonrails.org/upgrading_ruby_on_rails.html</a> is not what is the latest (meaning: doesn't include all the contributions to date).</p>
           <p>A few years back, I've made some contributions to Rails upgrade guide and I recall something like my contributions not being backported to another branch, or having to wait until certain release (to be in <a href="https://guides.rubyonrails.org" target="_blank">guides.rubyonrails.org</a>). In the weeks to come, I will circle back on this and see if it makes sense to open a PR. 🤞</p>
           <p>This is a <span class="spkeym-purple">specific error message</span> somewhere in Rails, related to a new behavior, where in Rails 7.0 is not supported and causes rails app to fail to start.</p>
@@ -175,7 +166,7 @@ end</pre>
 
           <p>As I was going through all that in my head, I got another notification popping up. It read (something along the lines): "I deployed the <code>cache_versioning = false</code> and it <span class="spkeym-purple">worked</span>, but we are getting <span class="spkeym-purple">HTTP 503</span> from the uptime/status check.".</p>
           <p>Disabling the cache versioning <span class="spkeym-purple">worked</span>, the Rails 7.0 branch was deployed successfully, <span class="spkeym-purple">but</span> just to make us stumble upon another <span class="spkeym-purple">disparity</span> between Dev/Staging/CI & Production!</p>
-          
+
           <p>Given we were getting 503s, and this was the 2nd attempt, we decided to <span class="spkeym-purple">rollback</span> the deployment, and go back to the drawing board! Back to Rails 6.1 in Production and figure out where the 503s were coming from.</p>
 
           <p>The next day I've executed the exact same steps in Staging to try to replicate the 503s, but TL'DR I could not replicate it.</p>
@@ -187,7 +178,7 @@ end</pre>
           <p>I was not very optimistic that the 503s would not happen again! Even though we found and changed some things, the root cause for the 503s were still unknown, so I dove into the logs and found the following error message:</p>
           <p>
             <div class="light-quote">
-              <pre>app web.4 - [37] ! Unable to load application: 
+              <pre>app web.4 - [37] ! Unable to load application:
 NameError: uninitialized constant WickedPdf::OpenStruct</pre>
             </div>
           </p>
@@ -200,7 +191,7 @@ NameError: uninitialized constant WickedPdf::OpenStruct</pre>
           <p>In the coming weeks I will circle back on this and ask in the WickedPdf repo, or perhaps in the Rails discussion forums whether this could be an edge case of Zeitwerk or somewhere else in Rails! 🤞</p>
 
           <p>Once it was determined the 503s were due to WickedPdf preventing the app from loading, I discovered a work-around [which I still could not replicate it in Staging (remember: Staging all was good and on 🔥)], but I was now <span class="spkeym-purple">confident</span> for another attempt deploying the Rails 7.0 branch.</p>
- 
+
           <p>And this time <span class="spkeym-purple">it worked</span>! The app booted just fine, and Rails 7.0 was finally in production.</p>
 
           <p>Rails 7.0 is in production, some tech debt was paid, new tech debt was uncovered, all of it is documented in my head, some of it already in the task management tool being used!</p>
@@ -211,7 +202,7 @@ NameError: uninitialized constant WickedPdf::OpenStruct</pre>
 
           <p>If you liked it, say <span class="spkeym-purple">Hi</span> on <a rel="me" href="https://ruby.social/@hacrods"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="15" fill="currentColor" class="bi-inline bi-mastodon" viewBox="0 0 16 16">
             <path d="M11.19 12.195c2.016-.24 3.77-1.475 3.99-2.603.348-1.778.32-4.339.32-4.339 0-3.47-2.286-4.488-2.286-4.488C12.062.238 10.083.017 8.027 0h-.05C5.92.017 3.942.238 2.79.765c0 0-2.285 1.017-2.285 4.488l-.002.662c-.004.64-.007 1.35.011 2.091.083 3.394.626 6.74 3.78 7.57 1.454.383 2.703.463 3.709.408 1.823-.1 2.847-.647 2.847-.647l-.06-1.317s-1.303.41-2.767.36c-1.45-.05-2.98-.156-3.215-1.928a3.614 3.614 0 0 1-.033-.496s1.424.346 3.228.428c1.103.05 2.137-.064 3.188-.189zm1.613-2.47H11.13v-4.08c0-.859-.364-1.295-1.091-1.295-.804 0-1.207.517-1.207 1.541v2.233H7.168V5.89c0-1.024-.403-1.541-1.207-1.541-.727 0-1.091.436-1.091 1.296v4.079H3.197V5.522c0-.859.22-1.541.66-2.046.456-.505 1.052-.764 1.793-.764.856 0 1.504.328 1.933.983L8 4.39l.417-.695c.429-.655 1.077-.983 1.934-.983.74 0 1.336.259 1.791.764.442.505.661 1.187.661 2.046v4.203z"/>
-          </svg></a> or by (the good and old fashioned) <a href="mailto:helio@tcard.io"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi-inline bi-envelope" viewBox="0 0 16 16">
+          </svg></a> or by (the good and old fashioned) <a href="mailto:helio@heliocola.com"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi-inline bi-envelope" viewBox="0 0 16 16">
             <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"/>
           </svg></a>! :-D</p>
         </div>

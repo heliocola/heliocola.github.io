@@ -14,15 +14,6 @@
     <link rel="stylesheet" href="/css/backgrounds.css">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-F5XQ46J2G2"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-F5XQ46J2G2');
-    </script>
     <script src="/js/scale.fix.js"></script>
   </head>
   <body>
@@ -40,11 +31,11 @@
             <p>Hi there y'all.</p>
             <p>Today I am here to write to you about the usage of <span class="spkeym-purple">`app`</span> (or `admin`, or `api`) as a subdomain and how to use <code>constraints subdomain: 'app'</code> in <span class="spkeym-purple">routes.rb</span>.</p>
             <p>It is a very common strategy to host your website (the marketing one) in a separate app, perhaps using a CMS I shall not name, that is separate from your <span class="spkeym-purple">RubyOnRails</span> app.</p>
-              
+
             <p>This post is brought to you by the fact that I am reversing that scenario in one of my small apps, for a couple of reasons, being cost one of them but also because I prefer to manage 1 app in 1 cloud provider instead of 2 apps in 2 cloud providers.</p>
-              
+
             <p>So, in the process of doing that I ran into some issues and got a chance to use Rails routes constraints again to ensure routes are only available where they are needed.</p>
-              
+
             <ul>My app is simple and it is currently like this:
               <ul>
                 <li>Marketing site on <a>https://my_domain.com</a> hosted on DigitalOcean</li>
@@ -53,11 +44,11 @@
             </ul>
 
             <p>My goal is also simple: merge the two together in a single Rails app, hosted in Fly.io.</p>
-            
+
             <p><div class="quote">SIDE NOTE: if you have some feedback to share about Fly, I'd love to hear. I've been using Fly for about 4 months and so far I have a love and hate relationship with them. A few days ago, I had decided to leave, the thoughts of going back to Heroku ran through my mind, but a lunch in between made me realize the problem was indeed my local wifi instability! :-D</div></p>
-            
+
             <p>So, back to Rails Routes Constraints!</p>
-            
+
             <p>In the process of merging the marketing site with the rails app, I've decided to change the Rails routes to become like this:</p>
             <pre><code>constraints subdomain: 'app' do
   devise_for :users
@@ -65,30 +56,30 @@
   # other routes...
   ...
 end</code></pre>
-            
+
             <p>The goal was to ensure all the existing routes for the Rails app was only available when browsing through the app, under <span class="spkeym-purple">`app`</span> subdomain.</p>
-            
+
             <p>When you set that up, you need to have the subdomain <span class="spkeym-purple">`app`</span> available for your <span class="spkeym-purple">localhost</span>, and you may need `app.staging` for your Staging.</p>
-            
+
             <p>To have it available for your local development environment, you just need to add the following to <span class="spkeym-purple">/etc/hosts</span>:</p>
             <pre><code>127.0.0.1	spkeym.localhost
 127.0.0.1	app.spkeym.localhost</code></pre>
-              
+
             <p>And this in <span class="spkeym-purple">`environments/development.rb`</span>:</p>
             <pre><code>config.hosts += ['spkeym.localhost', 'app.spkeym.localhost']</code></pre>
-            
+
             <p>So, now Devise sign in route <span class="spkeym-purple">`users/sign_in`</span> are only available in <a>http://app.spkeym.localhost:3000</a> and so it all other routes you have in your Rails app.</p>
-            
+
             <p>Passkeys routes... Oh... passkeys routes are totally ok, they are under the Rails app and under app subdomain... But why are the tests failing?! So... the browsers (Safari & Chrome)... So maybe that should be the goal of another post! :-D</p>
-            
+
             <p>Before I wrap this up without further side notes, there is one more change you need for Staging environment: you must take `staging` out of the subdomain, so it doesn't conflict with routes.rb.</p>
-            
+
             <p>You do that with by adding the following in to <span class="spkeym-purple">`environments/staging.rb`</span>:</p>
             <pre><code>config.action_dispatch.tld_length = 2</code></pre>
-            
+
             <p>The reason you need that is because Rails, inside actionpack, would consider anything before <span class="spkeym-purple">`my_domain.com`</span> as your subdomain.</p>
             <p>If you keep the default value for <code>tld_length</code>, the subdomain would be <span class="spkeym-purple">`app.staging`</span> and you'd get a routing error, given <span class="spkeym-purple">routes.rb</span> has <span class="spkeym-purple">`constraints subdomain: app`</span>.</p>
-            
+
             <p>Once the routes in app subdomain and staging are taken care, you need to ensure your site routes aren't available for your app subdomain. To accomplish you can create another constraint block with <span class="spkeym-purple">`subdomain: false`</span>:</p>
             <pre><code>constraints subdomain: false do
   # Website pages
@@ -96,18 +87,18 @@ end</code></pre>
   get 'about', to: 'home#about'
   ...
 end</code></pre>
-            
+
             <p>So now, your Rails app routes are only available under the app subdomain, while your website routes, now part of your Rails app, are only available for your root domain! Voila?!</p>
 
             <p>Not quite voila... There is still one issue left (that I have not found a good solution): the <span class="spkeym-purple">root_path</span>!</p>
 
             <p>I still had <span class="spkeym-purple">root_path</span> defined outside the constraints blocks as:</p>
             <pre><code>root 'home#index'</code></pre>
-            
+
             <p>In this situation, the root path is also avaible for the app subdomain. And if you move it inside <span class="spkeym-purple">`subdomain: false`</span> (where the website routes are defined), your app will render the default index.html shipped with Rails (for the app subdomain).</p>
 
             <p>I believe the routing needs a better way to deal with this scenario. Or I have not found the good solution yet!</p>
-            
+
             <p>I did try a few things (some are listed below), but I was still not happy with the outcome.</p>
             <pre><code>root 'home#index', constraints: { subdomain: false }
 
@@ -116,11 +107,11 @@ constraints subdomain: 'app' do
   ...
 end
             </code></pre>
-              
+
             <p>So, esteemed gentleperson 🌈... This is it for this post...</p>
-            
+
             <p>But... but... but... but before I go, let me give you a glimpse of the next blog post: if you are in the situation above, and you want to override Devise <span class="spkeym-purple">`after_sign_out_path_for`</span> to redirect from the subdomain to the root domain you will have to do some back flips!</p>
-            
+
             <p>I also haven't found a good enough solution for it (the issue `after_sign_out_path_for`). And I've dug into Devise's code (and Rails code for the root_path)...</p>
 
             <ol>So I end this post with 2 topics that I would like spend some of my time:
@@ -129,14 +120,14 @@ end
                 <li>Devise after_sign_out_path_for to redirect from app subdomain to root domain</li>
               </ol>
             </ol>
-            
+
             <p>If you are still here with me and have a preference between one or the other... please tell me! :-D</p>
             <p>If you liked it, say <span class="spkeym-purple">Hi</span> on <a rel="me" href="https://ruby.social/@hacrods"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="15" fill="currentColor" class="bi-inline bi-mastodon" viewBox="0 0 16 16">
               <path d="M11.19 12.195c2.016-.24 3.77-1.475 3.99-2.603.348-1.778.32-4.339.32-4.339 0-3.47-2.286-4.488-2.286-4.488C12.062.238 10.083.017 8.027 0h-.05C5.92.017 3.942.238 2.79.765c0 0-2.285 1.017-2.285 4.488l-.002.662c-.004.64-.007 1.35.011 2.091.083 3.394.626 6.74 3.78 7.57 1.454.383 2.703.463 3.709.408 1.823-.1 2.847-.647 2.847-.647l-.06-1.317s-1.303.41-2.767.36c-1.45-.05-2.98-.156-3.215-1.928a3.614 3.614 0 0 1-.033-.496s1.424.346 3.228.428c1.103.05 2.137-.064 3.188-.189zm1.613-2.47H11.13v-4.08c0-.859-.364-1.295-1.091-1.295-.804 0-1.207.517-1.207 1.541v2.233H7.168V5.89c0-1.024-.403-1.541-1.207-1.541-.727 0-1.091.436-1.091 1.296v4.079H3.197V5.522c0-.859.22-1.541.66-2.046.456-.505 1.052-.764 1.793-.764.856 0 1.504.328 1.933.983L8 4.39l.417-.695c.429-.655 1.077-.983 1.934-.983.74 0 1.336.259 1.791.764.442.505.661 1.187.661 2.046v4.203z"/>
             </svg></a>!</p>
             <p>If you have any comments, write me a message on <a rel="me" href="https://ruby.social/@hacrods"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="15" fill="currentColor" class="bi-inline bi-mastodon" viewBox="0 0 16 16">
               <path d="M11.19 12.195c2.016-.24 3.77-1.475 3.99-2.603.348-1.778.32-4.339.32-4.339 0-3.47-2.286-4.488-2.286-4.488C12.062.238 10.083.017 8.027 0h-.05C5.92.017 3.942.238 2.79.765c0 0-2.285 1.017-2.285 4.488l-.002.662c-.004.64-.007 1.35.011 2.091.083 3.394.626 6.74 3.78 7.57 1.454.383 2.703.463 3.709.408 1.823-.1 2.847-.647 2.847-.647l-.06-1.317s-1.303.41-2.767.36c-1.45-.05-2.98-.156-3.215-1.928a3.614 3.614 0 0 1-.033-.496s1.424.346 3.228.428c1.103.05 2.137-.064 3.188-.189zm1.613-2.47H11.13v-4.08c0-.859-.364-1.295-1.091-1.295-.804 0-1.207.517-1.207 1.541v2.233H7.168V5.89c0-1.024-.403-1.541-1.207-1.541-.727 0-1.091.436-1.091 1.296v4.079H3.197V5.522c0-.859.22-1.541.66-2.046.456-.505 1.052-.764 1.793-.764.856 0 1.504.328 1.933.983L8 4.39l.417-.695c.429-.655 1.077-.983 1.934-.983.74 0 1.336.259 1.791.764.442.505.661 1.187.661 2.046v4.203z"/>
-            </svg></a> (or by the good and old fashioned <a href="mailto:helio@tcard.io"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi-inline bi-envelope" viewBox="0 0 16 16">
+            </svg></a> (or by the good and old fashioned <a href="mailto:helio@heliocola.com"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi-inline bi-envelope" viewBox="0 0 16 16">
               <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"/>
             </svg></a>! :-D)</p>
           </div>
